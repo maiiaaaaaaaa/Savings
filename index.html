@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои Копилки</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      background: #4bb5c1;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      width: 100%;
+      font-size: 1.2em;
+    }
+    .card {
+      background: white;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      margin-top: 20px;
+      overflow: hidden;
+      text-align: center;
+      padding: 15px;
+    }
+    img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+    .progress-container {
+      background: #eee;
+      border-radius: 20px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-bar {
+      height: 12px;
+      background: #4bb5c1;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      background: #4bb5c1;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    button:active {
+      background: #3a8d97;
+    }
+    .history {
+      text-align: left;
+      font-size: 0.9em;
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 8px;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+    .lang-select {
+      margin-top: 50px;
+      text-align: center;
+    }
+    .flag-btn {
+      font-size: 1.2em;
+      margin: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header id="app-title"></header>
+
+  <div id="lang-screen" class="lang-select" style="display:none;">
+    <h2>Выберите язык / Choose language</h2>
+    <button class="flag-btn" onclick="setLanguage('ru')">🇷🇺 Русский</button>
+    <button class="flag-btn" onclick="setLanguage('en')">🇬🇧 English</button>
+  </div>
+
+  <div id="app-screen" style="display:none;">
+    <div id="card-container"></div>
+    <button onclick="addGoal()" id="btn-add"></button>
+    <button onclick="changeLanguage()" id="btn-change-lang"></button>
+  </div>
+
+  <script>
+    const translations = {
+      ru: {
+        title: "💰 Мои Копилки",
+        addGoal: "➕ Добавить цель",
+        changeLang: "🌐 Сменить язык",
+        promptName: "Название цели:",
+        promptTarget: "Сумма цели:",
+        promptImage: "Ссылка на картинку:",
+        promptAdd: "Сколько добавить?",
+        history: "История"
+      },
+      en: {
+        title: "💰 My Savings",
+        addGoal: "➕ Add goal",
+        changeLang: "🌐 Change language",
+        promptName: "Goal name:",
+        promptTarget: "Goal amount:",
+        promptImage: "Image URL:",
+        promptAdd: "How much to add?",
+        history: "History"
+      }
+    };
+
+    let lang = localStorage.getItem('lang') || null;
+    let goals = JSON.parse(localStorage.getItem('goals')) || [
+      {name: "Новый телефон", target: 30000, saved: 5000, image: "https://via.placeholder.com/300", history: []}
+    ];
+    let currentIndex = 0;
+
+    function saveGoals() {
+      localStorage.setItem('goals', JSON.stringify(goals));
+    }
+
+    function setLanguage(selected) {
+      lang = selected;
+      localStorage.setItem('lang', lang);
+      document.getElementById('lang-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'block';
+      renderGoal(currentIndex);
+      updateTexts();
+    }
+
+    function updateTexts() {
+      document.getElementById('app-title').textContent = translations[lang].title;
+      document.getElementById('btn-add').textContent = translations[lang].addGoal;
+      document.getElementById('btn-change-lang').textContent = translations[lang].changeLang;
+    }
+
+    function renderGoal(index) {
+      const goal = goals[index];
+      const percent = (goal.saved / goal.target) * 100;
+      document.getElementById('card-container').innerHTML = `
+        <div class="card">
+          <img src="${goal.image}" alt="Goal">
+          <h2>${goal.name}</h2>
+          <div>${goal.saved} / ${goal.target} ₽</div>
+          <div class="progress-container">
+            <div class="progress-bar" style="width: ${percent}%"></div>
+          </div>
+          <button onclick="addMoney(${index})">+ 💰</button>
+          <button onclick="showHistory(${index})">${translations[lang].history}</button>
+        </div>
+      `;
+    }
+
+    function addGoal() {
+      const name = prompt(translations[lang].promptName);
+      const target = parseFloat(prompt(translations[lang].promptTarget));
+      const image = prompt(translations[lang].promptImage);
+      if (!name || !target) return;
+      goals.push({name, target, saved: 0, image: image || "https://via.placeholder.com/300", history: []});
+      saveGoals();
+      currentIndex = goals.length - 1;
+      renderGoal(currentIndex);
+    }
+
+    function addMoney(index) {
+      const amount = parseFloat(prompt(translations[lang].promptAdd));
+      if (!amount) return;
+      goals[index].saved += amount;
+      goals[index].history.push({date: new Date().toLocaleString(), amount: `+${amount}`});
+      saveGoals();
+      renderGoal(index);
+    }
+
+    function showHistory(index) {
+      const goal = goals[index];
+      let html = "<div class='history'><b>" + translations[lang].history + ":</b><br>";
+      goal.history.forEach(h => {
+        html += `${h.date}: ${h.amount}₽<br>`;
+      });
+      html += "</div>";
+      document.querySelector('.card').innerHTML += html;
+    }
+
+    function changeLanguage() {
+      localStorage.removeItem('lang');
+      location.reload();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        currentIndex = (currentIndex + 1) % goals.length;
+        renderGoal(currentIndex);
+      }
+      if (e.key === 'ArrowLeft') {
+        currentIndex = (currentIndex - 1 + goals.length) % goals.length;
+        renderGoal(currentIndex);
+      }
+    });
+
+    if (!lang) {
+      document.getElementById('lang-screen').style.display = 'block';
+    } else {
+      document.getElementById('app-screen').style.display = 'block';
+      updateTexts();
+      renderGoal(currentIndex);
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
